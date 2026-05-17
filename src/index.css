@@ -20,7 +20,7 @@ body {
 
 .glass-panel {
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035)),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.035)),
     rgba(15, 23, 42, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 22px;
@@ -144,7 +144,7 @@ body {
 
 .segment-cell-active {
   border-color: rgba(125, 211, 252, 0.72);
-  background: linear-gradient(135deg, rgba(14, 165, 233, 0.32), rgba(168, 85, 247, 0.28));
+  background: linear-gradient(90deg, rgba(14, 165, 233, 0.32), rgba(168, 85, 247, 0.28));
   color: white;
   transform: translateY(-1px);
 }
@@ -253,7 +253,7 @@ body {
   border-radius: 28px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025)),
     rgba(2, 6, 23, 0.46);
   padding: 22px;
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.08), 0 28px 90px rgba(0, 0, 0, 0.28);

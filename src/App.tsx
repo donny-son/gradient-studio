@@ -44,7 +44,7 @@ export default function App() {
     GRADIENT_PRESETS[0].colors.map(() => DEFAULT_WEIGHT),
   );
   const [type, setType] = useState<GradientType>('linear');
-  const [angle, setAngle] = useState(135);
+  const [angle, setAngle] = useState(90);
   const [device, setDevice] = useState<DeviceType>('desktop');
   const [grainScale, setGrainScale] = useState(10);
   const [bandWidth, setBandWidth] = useState(0);
@@ -163,7 +163,7 @@ export default function App() {
                   onClick={() => applyPalette(preset.colors)}
                         className="preset-cell"
                 >
-                        <span className="preset-swatch" style={{ background: `linear-gradient(135deg, ${preset.colors.join(', ')})` }} />
+                        <span className="preset-swatch" style={{ background: `linear-gradient(90deg, ${preset.colors.join(', ')})` }} />
                   {preset.name}
                 </button>
               ))}
