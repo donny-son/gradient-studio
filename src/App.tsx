@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
-import type { ChangeEvent } from 'react';
+import type { ChangeEvent, ReactNode } from 'react';
 import { getPalette } from 'colorthief';
 import {
   Aperture,
+  ChevronDown,
   Download,
   GripVertical,
   Image as ImageIcon,
@@ -38,6 +39,34 @@ const GRADIENT_TYPES: Array<{ type: GradientType; label: string; icon: typeof La
   { type: 'glow', label: 'Glow', icon: Sunrise },
 ];
 
+// A collapsible control group — a notebook page you fold open or shut.
+type SectionProps = {
+  id: string;
+  icon: typeof Layers3;
+  title: string;
+  open: boolean;
+  onToggle: (id: string) => void;
+  children: ReactNode;
+};
+
+function Section({ id, icon: Icon, title, open, onToggle, children }: SectionProps) {
+  return (
+    <div className={`accordion-section${open ? ' accordion-section-open' : ''}`}>
+      <button
+        type="button"
+        className="accordion-header"
+        onClick={() => onToggle(id)}
+        aria-expanded={open}
+      >
+        <Icon size={18} />
+        <span>{title}</span>
+        <ChevronDown size={18} className="accordion-chevron" />
+      </button>
+      {open && <div className="accordion-body">{children}</div>}
+    </div>
+  );
+}
+
 export default function App() {
   const [colors, setColors] = useState<string[]>(GRADIENT_PRESETS[0].colors);
   const [weights, setWeights] = useState<number[]>(
@@ -51,9 +80,16 @@ export default function App() {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [openSections, setOpenSections] = useState<string[]>(['presets', 'palette']);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const selectedDevice = DEVICE_PRESETS[device];
+
+  // Fold a control section open or shut.
+  const toggleSection = (id: string) =>
+    setOpenSections((prev) =>
+      prev.includes(id) ? prev.filter((section) => section !== id) : [...prev, id],
+    );
 
   // Swap the whole palette and reset every girth back to neutral.
   const applyPalette = (next: string[]) => {
@@ -126,92 +162,106 @@ export default function App() {
 
         <div className="order-3 lg:order-2 lg:col-span-4">
           <div className="glass-panel overflow-hidden">
-            <div className="control-row">
-              <div className="control-cell control-cell-label">
-                <ImageIcon size={18} />
-                <span>Source</span>
-              </div>
+            <Section
+              id="source"
+              icon={ImageIcon}
+              title="Source"
+              open={openSections.includes('source')}
+              onToggle={toggleSection}
+            >
               <button
                 type="button"
-              onClick={() => fileInputRef.current?.click()}
-                className="control-cell control-cell-action group"
-            >
-                <Upload size={18} className="text-cyan-200" />
-                <span>
-                {isProcessing ? 'Processing...' : 'Upload source image'}
-              </span>
-              <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleImageUpload} 
-                accept="image/*" 
-                className="hidden" 
-              />
+                onClick={() => fileInputRef.current?.click()}
+                className="upload-btn"
+              >
+                <Upload size={18} />
+                <span>{isProcessing ? 'Processing...' : 'Upload source image'}</span>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
               </button>
-          </div>
+            </Section>
 
-            <div className="control-row control-row-stack">
-              <div className="control-cell control-cell-label">
-                <Palette size={18} />
-                <span>Presets</span>
-              </div>
-              <div className="control-cell">
-                <div className="flex w-full flex-col gap-4">
-                  {PRESET_GROUPS.map((group) => (
-                    <div key={group.country}>
-                      <p className="preset-group-label">{group.country}</p>
-                      <div className="grid w-full grid-cols-2 gap-2">
-                        {group.presets.map((preset) => (
-                          <button
-                            key={preset.name}
-                            onClick={() => applyPalette(preset.colors)}
-                            className="preset-cell"
-                          >
-                            <span className="preset-swatch" style={{ background: `linear-gradient(90deg, ${preset.colors.join(', ')})` }} />
-                            {preset.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+            <Section
+              id="presets"
+              icon={Palette}
+              title="Presets"
+              open={openSections.includes('presets')}
+              onToggle={toggleSection}
+            >
+              {PRESET_GROUPS.map((group) => (
+                <div key={group.country}>
+                  <p className="preset-group-label">{group.country}</p>
+                  <div className="grid w-full grid-cols-2 gap-2">
+                    {group.presets.map((preset) => (
+                      <button
+                        key={preset.name}
+                        onClick={() => applyPalette(preset.colors)}
+                        className="preset-cell"
+                      >
+                        <span className="preset-swatch" style={{ background: `linear-gradient(90deg, ${preset.colors.join(', ')})` }} />
+                        {preset.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-          </div>
+              ))}
+            </Section>
 
-            <div className="control-row control-row-stack">
-              <div className="control-cell control-cell-label">
-                <Sparkles size={18} />
-                <span>Gradient</span>
+            <Section
+              id="gradient"
+              icon={Sparkles}
+              title="Gradient"
+              open={openSections.includes('gradient')}
+              onToggle={toggleSection}
+            >
+              <div className="segmented-grid">
+                {GRADIENT_TYPES.map(({ type: gradientType, label, icon: Icon }) => (
+                  <button
+                    key={gradientType}
+                    type="button"
+                    onClick={() => {
+                      setType(gradientType);
+                      // Vertical orientation makes the glow read as a
+                      // horizontal "horizon" band.
+                      if (gradientType === 'glow') setAngle(90);
+                    }}
+                    className={`segment-cell ${type === gradientType ? 'segment-cell-active' : ''}`}
+                  >
+                    <Icon size={16} />
+                    <span>{label}</span>
+                  </button>
+                ))}
               </div>
-              <div className="control-cell">
-                <div className="segmented-grid">
-                  {GRADIENT_TYPES.map(({ type: gradientType, label, icon: Icon }) => (
-                    <button
-                      key={gradientType}
-                      type="button"
-                      onClick={() => {
-                        setType(gradientType);
-                        // Vertical orientation makes the glow read as a
-                        // horizontal "horizon" band.
-                        if (gradientType === 'glow') setAngle(90);
-                      }}
-                      className={`segment-cell ${type === gradientType ? 'segment-cell-active' : ''}`}
-                    >
-                      <Icon size={16} />
-                      <span>{label}</span>
-                    </button>
-                  ))}
+              {type !== 'radial' && (
+                <div className="field">
+                  <span className="field-label">Angle</span>
+                  <div className="control-cell-range">
+                    <input
+                      type="range"
+                      min="0"
+                      max="360"
+                      value={angle}
+                      onChange={(e) => setAngle(parseInt(e.target.value))}
+                      className="w-full accent-brand-primary"
+                    />
+                    <span className="angle-readout">{angle}°</span>
+                  </div>
                 </div>
-              </div>
-            </div>
+              )}
+            </Section>
 
-            <div className="control-row control-row-stack">
-              <div className="control-cell control-cell-label">
-                <Palette size={18} />
-                <span>Palette</span>
-              </div>
-              <div className="control-cell">
-                <div className="flex w-full flex-col gap-2">
+            <Section
+              id="palette"
+              icon={Palette}
+              title="Palette"
+              open={openSections.includes('palette')}
+              onToggle={toggleSection}
+            >
               {colors.map((color, index) => (
                 <div
                   key={index}
@@ -274,26 +324,27 @@ export default function App() {
                 </div>
               ))}
               <button
-                    type="button"
+                type="button"
                 onClick={() => {
                   setColors([...colors, '#ffffff']);
                   setWeights([...weights, DEFAULT_WEIGHT]);
                 }}
-                    className="color-add"
-                    aria-label="Add color"
+                className="color-add"
+                aria-label="Add color"
               >
-                    <Plus size={16} />
+                <Plus size={16} />
               </button>
-            </div>
-          </div>
-            </div>
+            </Section>
 
-            <div className="control-row">
-              <div className="control-cell control-cell-label">
-                <Monitor size={18} />
-                <span>Preview</span>
-              </div>
-              <div className="control-cell">
+            <Section
+              id="output"
+              icon={Monitor}
+              title="Output"
+              open={openSections.includes('output')}
+              onToggle={toggleSection}
+            >
+              <div className="field">
+                <span className="field-label">Preview device</span>
                 <div className="segmented-grid segmented-grid-two">
                   <button
                     type="button"
@@ -311,68 +362,47 @@ export default function App() {
                     <Smartphone size={16} />
                     <span>Phone</span>
                   </button>
-            </div>
-              </div>
-            </div>
-
-            {type !== 'radial' && (
-              <div className="control-row">
-                <div className="control-cell control-cell-label">
-                  <span>Angle</span>
-                </div>
-                <div className="control-cell control-cell-range">
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="360" 
-                  value={angle} 
-                  onChange={(e) => setAngle(parseInt(e.target.value))}
-                  className="w-full accent-brand-primary" 
-                />
-                  <span className="angle-readout">{angle}°</span>
                 </div>
               </div>
-            )}
 
-            <div className="control-row">
-              <div className="control-cell control-cell-label">
-                <Layers3 size={18} />
-                <span>Band</span>
+              <div className="field">
+                <span className="field-label">
+                  <Layers3 size={14} /> Band
+                </span>
+                <div className="control-cell-range">
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={bandWidth}
+                    onChange={(event) => setBandWidth(parseInt(event.target.value))}
+                    className="w-full accent-brand-primary"
+                  />
+                  <span className="angle-readout">{bandWidth}</span>
+                </div>
               </div>
-              <div className="control-cell control-cell-range">
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={bandWidth}
-                  onChange={(event) => setBandWidth(parseInt(event.target.value))}
-                  className="w-full accent-brand-primary"
-                />
-                <span className="angle-readout">{bandWidth}</span>
-              </div>
-            </div>
 
-            <div className="control-row">
-              <div className="control-cell control-cell-label">
-                <SlidersHorizontal size={18} />
-                <span>Grain</span>
+              <div className="field">
+                <span className="field-label">
+                  <SlidersHorizontal size={14} /> Grain
+                </span>
+                <div className="control-cell-range">
+                  <input
+                    type="range"
+                    min="0"
+                    max="40"
+                    value={grainScale}
+                    onChange={(event) => setGrainScale(parseInt(event.target.value))}
+                    className="w-full accent-brand-primary"
+                  />
+                  <span className="angle-readout">{grainScale}</span>
+                </div>
               </div>
-              <div className="control-cell control-cell-range">
-                <input
-                  type="range"
-                  min="0"
-                  max="40"
-                  value={grainScale}
-                  onChange={(event) => setGrainScale(parseInt(event.target.value))}
-                  className="w-full accent-brand-primary"
-                />
-                <span className="angle-readout">{grainScale}</span>
-              </div>
-            </div>
-        </div>
+            </Section>
+          </div>
         </div>
 
-        <div className="order-2 lg:order-3 lg:col-span-8">
+        <div className="order-2 lg:order-3 lg:col-span-8 lg:sticky lg:top-8 lg:self-start">
           <div className="preview-stage">
           <WallpaperCanvas
               ref={canvasRef}
@@ -415,6 +445,21 @@ export default function App() {
         </div>
           </div>
       </div>
+
+        <footer className="order-4 lg:col-span-12 mt-4 flex flex-col items-center gap-1 border-t border-slate-300/60 pt-6 text-xs text-slate-500 sm:flex-row sm:justify-between">
+          <p>
+            Crafted by{' '}
+            <a
+              href="https://son.do"
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-slate-700 underline-offset-2 transition-colors hover:text-slate-900 hover:underline"
+            >
+              son.do
+            </a>
+          </p>
+          <p>Released under the MIT License &copy; 2026 Do Son</p>
+        </footer>
     </div>
     </div>
   );

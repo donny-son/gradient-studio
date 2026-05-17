@@ -107,56 +107,113 @@ body::before {
   pointer-events: none;
 }
 
-.control-row {
-  display: grid;
-  grid-template-columns: minmax(112px, 0.42fr) 1fr;
+/* ---- Accordion sections (folding notebook pages) ---- */
+
+.accordion-section {
   border-bottom: 1.5px dashed var(--pencil-soft);
 }
 
-.control-row-stack {
-  grid-template-columns: 1fr;
+.accordion-section:last-child {
+  border-bottom: 0;
 }
 
-.control-cell {
-  min-width: 0;
-  padding: 15px;
-}
-
-.control-row:not(.control-row-stack) .control-cell + .control-cell,
-.control-cell-action {
-  border-left: 1.5px dashed var(--pencil-soft);
-}
-
-.control-cell-label {
+.accordion-header {
+  position: relative;
   display: flex;
+  width: 100%;
   align-items: center;
   gap: 9px;
+  padding: 15px;
   color: var(--color-ink);
   font-size: 0.95rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-}
-
-.control-cell-label svg {
-  color: var(--color-sketch-red);
-}
-
-.control-cell-action {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 10px;
-  color: var(--color-ink);
-  font-size: 1.05rem;
-  font-weight: 400;
-  text-align: left;
   transition: background-color 160ms ease;
 }
 
-.control-cell-action:hover {
-  background: rgba(243, 211, 78, 0.28);
+.accordion-header:hover {
+  background: rgba(243, 211, 78, 0.22);
+}
+
+.accordion-header > svg:first-child {
+  color: var(--color-sketch-red);
+}
+
+.accordion-chevron {
+  margin-left: auto;
+  color: var(--color-ink-soft);
+  transition: transform 220ms ease;
+}
+
+.accordion-section-open .accordion-chevron {
+  transform: rotate(180deg);
+}
+
+/* Folded page-corner on a collapsed section — the "dog-ear". */
+.accordion-section:not(.accordion-section-open) .accordion-header::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  border-style: solid;
+  border-width: 0 0 13px 13px;
+  border-color: transparent transparent var(--color-paper) transparent;
+}
+
+.accordion-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 2px 15px 18px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.field-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-ink-soft);
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.field-label svg {
+  color: var(--color-sketch-red);
+}
+
+/* Upload trigger inside the Source section. */
+.upload-btn {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  border-radius: var(--hand-md);
+  border: 2px solid var(--color-ink);
+  background: var(--color-page);
+  padding: 12px 14px;
+  color: var(--color-ink);
+  font-size: 1.02rem;
+  text-align: left;
+  box-shadow: 1.5px 2px 0 rgba(43, 40, 36, 0.14);
+  transition: background-color 140ms ease, transform 140ms ease;
+}
+
+.upload-btn:hover {
+  background: rgba(243, 211, 78, 0.3);
+  transform: translateY(-1px);
+}
+
+.upload-btn svg {
+  flex: 0 0 auto;
+  color: var(--color-sketch-red);
 }
 
 /* ---- Preset chips ---- */
@@ -531,16 +588,6 @@ input[type="range"]::-moz-range-thumb {
 @media (max-width: 760px) {
   .app-title {
     font-size: 3.4rem;
-  }
-
-  .control-row {
-    grid-template-columns: 1fr;
-  }
-
-  .control-row:not(.control-row-stack) .control-cell + .control-cell,
-  .control-cell-action {
-    border-left: 0;
-    border-top: 1.5px dashed var(--pencil-soft);
   }
 
   .glass-panel,
