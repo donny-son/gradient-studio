@@ -5,12 +5,12 @@ images, blend them with multiple gradient engines, and export device-ready PNGs.
 
 ## Features
 
-- **Palette extraction** — upload any image and pull a 5-color palette from it.
-- **Gradient engines** — linear, radial, conic, and a mirrored "glow" mode.
-- **Per-color girth** — weight each color so it claims more or less of the blend.
-- **Drag-to-reorder** palette, adjustable angle, band width, and film grain.
-- **Device presets** — 4K desktop (3840×2160) and phone (1290×2796) output.
-- **One-click PNG export** at full internal resolution.
+- Palette extraction — upload any image and pull a 5-color palette from it.
+- Gradient engines — linear, radial, conic, and a mirrored "glow" mode.
+- Per-color girth — weight each color so it claims more or less of the blend.
+- Drag-to-reorder palette, adjustable angle, band width, and film grain.
+- Device presets — 4K desktop (3840×2160) and phone (1290×2796) output.
+- One-click PNG export at full internal resolution.
 
 ## Development
 
@@ -25,3 +25,7 @@ npm run lint     # run ESLint
 
 React 19, TypeScript, Vite, Tailwind CSS v4, [colorthief](https://github.com/lokesh/color-thief),
 and [lucide-react](https://lucide.dev/).
+
+## LICENSE
+
+MIT

@@ -5,38 +5,63 @@ export type GradientPreset = {
 
 export type GradientType = 'linear' | 'radial' | 'conic' | 'glow';
 
-export const GRADIENT_PRESETS: GradientPreset[] = [
-  { name: 'Midnight Aurora', colors: ['#0f172a', '#334155', '#0ea5e9', '#22d3ee'] },
-  { name: 'Sunset Bloom', colors: ['#f43f5e', '#fb923c', '#facc15', '#ec4899'] },
-  { name: 'Deep Emerald', colors: ['#064e3b', '#059669', '#34d399', '#a7f3d0'] },
-  { name: 'Royal Velvet', colors: ['#4c1d95', '#7c3aed', '#c084fc', '#e9d5ff'] },
-  { name: 'Cosmic Dust', colors: ['#1e1b4b', '#4338ca', '#6366f1', '#818cf8'] },
-  { name: 'Warm Sand', colors: ['#78350f', '#d97706', '#fbbf24', '#fef3c7'] },
-  // Japanese-gradient style presets (pair with the "Glow" type)
-  { name: 'Tokyo Glow', colors: ['#bdbdb8', '#ddd9c8', '#f2d24a'] },
-  { name: 'Crimson Horizon', colors: ['#050505', '#0b1030', '#c0392b', '#8c8c8a'] },
-  { name: 'Copper Fade', colors: ['#b85f37', '#a59f96', '#cfcdca'] },
-  // Japanese-inspired templates — soft vertical "glow" gradients (top → bottom).
-  // Reference: "Japanese Gradients for UI" (the-brandidentity.com).
-  { name: 'Copper Sunset', colors: ['#c76a35', '#6e3a1c', '#1c0f07', '#000000'] },
-  { name: 'Hazy Dawn', colors: ['#1c2540', '#3a4a63', '#9aa6ab', '#d9cdb8'] },
-  { name: 'Ember Horizon', colors: ['#070708', '#141a38', '#b23a2c', '#9a9a98'] },
-  { name: 'Charcoal Fade', colors: ['#050505', '#2a2a2c', '#5c5c5e', '#8e8e90'] },
-  { name: 'Gilded Haze', colors: ['#bdbcb8', '#d8d2bf', '#e8c84a', '#bdbcb8'] },
-  { name: 'Teal Dusk', colors: ['#1a2236', '#33445a', '#6f8e92', '#aebcb6'] },
-  { name: 'Violet Ash', colors: ['#241a33', '#4a3b58', '#8a8290', '#b8b4ba'] },
-  { name: 'Mauve Sky', colors: ['#7d8aa0', '#9a9bab', '#bfb2b4', '#d8c3c2'] },
-  // Korean-inspired templates — palettes drawn from traditional Korean color
-  // themes (오방색, 백자, 청자, 단청, 한복, 조각보, 태극, 수묵).
-  { name: 'Obangsaek', colors: ['#1a1a1a', '#13447e', '#c8392f', '#e4b53f', '#f1ebdc'] },
-  { name: 'Baekja Porcelain', colors: ['#bcb2a0', '#d2c9b8', '#e6dfd0', '#f4efe4'] },
-  { name: 'Goryeo Celadon', colors: ['#3f6457', '#6d9183', '#9cbcab', '#cfe0d2'] },
-  { name: 'Dancheong', colors: ['#13432f', '#11539a', '#c8412c', '#e6c244', '#ece4d0'] },
-  { name: 'Hanbok Plum', colors: ['#5e1f38', '#9c3a57', '#cf7a8e', '#f0dad9'] },
-  { name: 'Jogakbo', colors: ['#3a2b3c', '#b03b4a', '#d9c7a8', '#6f9a86'] },
-  { name: 'Taegeuk', colors: ['#0b3a72', '#2a5fa0', '#f0ebe0', '#cd2e3a', '#7d1f2c'] },
-  { name: 'Ink & Hanji', colors: ['#141417', '#3f3b38', '#8d867b', '#e8e2d4'] },
+// Presets grouped by the country / tradition that inspired their palette.
+export type PresetGroup = {
+  country: string;
+  presets: GradientPreset[];
+};
+
+export const PRESET_GROUPS: PresetGroup[] = [
+  {
+    country: 'General',
+    presets: [
+      { name: 'Midnight Aurora', colors: ['#0f172a', '#334155', '#0ea5e9', '#22d3ee'] },
+      { name: 'Sunset Bloom', colors: ['#f43f5e', '#fb923c', '#facc15', '#ec4899'] },
+      { name: 'Deep Emerald', colors: ['#064e3b', '#059669', '#34d399', '#a7f3d0'] },
+      { name: 'Royal Velvet', colors: ['#4c1d95', '#7c3aed', '#c084fc', '#e9d5ff'] },
+      { name: 'Cosmic Dust', colors: ['#1e1b4b', '#4338ca', '#6366f1', '#818cf8'] },
+      { name: 'Warm Sand', colors: ['#78350f', '#d97706', '#fbbf24', '#fef3c7'] },
+    ],
+  },
+  {
+    // Soft vertical "glow" gradients (top → bottom), pair with the "Glow" type.
+    // Reference: "Japanese Gradients for UI" (the-brandidentity.com).
+    country: 'Japanese',
+    presets: [
+      { name: 'Tokyo Glow', colors: ['#bdbdb8', '#ddd9c8', '#f2d24a'] },
+      { name: 'Crimson Horizon', colors: ['#050505', '#0b1030', '#c0392b', '#8c8c8a'] },
+      { name: 'Copper Fade', colors: ['#b85f37', '#a59f96', '#cfcdca'] },
+      { name: 'Copper Sunset', colors: ['#c76a35', '#6e3a1c', '#1c0f07', '#000000'] },
+      { name: 'Hazy Dawn', colors: ['#1c2540', '#3a4a63', '#9aa6ab', '#d9cdb8'] },
+      { name: 'Ember Horizon', colors: ['#070708', '#141a38', '#b23a2c', '#9a9a98'] },
+      { name: 'Charcoal Fade', colors: ['#050505', '#2a2a2c', '#5c5c5e', '#8e8e90'] },
+      { name: 'Gilded Haze', colors: ['#bdbcb8', '#d8d2bf', '#e8c84a', '#bdbcb8'] },
+      { name: 'Teal Dusk', colors: ['#1a2236', '#33445a', '#6f8e92', '#aebcb6'] },
+      { name: 'Violet Ash', colors: ['#241a33', '#4a3b58', '#8a8290', '#b8b4ba'] },
+      { name: 'Mauve Sky', colors: ['#7d8aa0', '#9a9bab', '#bfb2b4', '#d8c3c2'] },
+    ],
+  },
+  {
+    // Palettes drawn from traditional Korean color themes
+    // (오방색, 백자, 청자, 단청, 한복, 조각보, 태극, 수묵).
+    country: 'Korean',
+    presets: [
+      { name: 'Obangsaek', colors: ['#1a1a1a', '#13447e', '#c8392f', '#e4b53f', '#f1ebdc'] },
+      { name: 'Baekja Porcelain', colors: ['#bcb2a0', '#d2c9b8', '#e6dfd0', '#f4efe4'] },
+      { name: 'Goryeo Celadon', colors: ['#3f6457', '#6d9183', '#9cbcab', '#cfe0d2'] },
+      { name: 'Dancheong', colors: ['#13432f', '#11539a', '#c8412c', '#e6c244', '#ece4d0'] },
+      { name: 'Hanbok Plum', colors: ['#5e1f38', '#9c3a57', '#cf7a8e', '#f0dad9'] },
+      { name: 'Jogakbo', colors: ['#3a2b3c', '#b03b4a', '#d9c7a8', '#6f9a86'] },
+      { name: 'Taegeuk', colors: ['#0b3a72', '#2a5fa0', '#f0ebe0', '#cd2e3a', '#7d1f2c'] },
+      { name: 'Ink & Hanji', colors: ['#141417', '#3f3b38', '#8d867b', '#e8e2d4'] },
+    ],
+  },
 ];
+
+// Flat list of every preset — used for defaults and the reset action.
+export const GRADIENT_PRESETS: GradientPreset[] = PRESET_GROUPS.flatMap(
+  (group) => group.presets,
+);
 
 /* ---- Color helpers for smooth, eased gradient blending ---- */
 

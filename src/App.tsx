@@ -17,7 +17,7 @@ import {
   Sunrise,
   Upload,
 } from 'lucide-react';
-import { GRADIENT_PRESETS } from './lib/gradients';
+import { GRADIENT_PRESETS, PRESET_GROUPS } from './lib/gradients';
 import type { GradientType } from './lib/gradients';
 import { WallpaperCanvas } from './components/WallpaperCanvas';
 
@@ -113,18 +113,18 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-bg-dark text-slate-200 p-4 md:p-8 lg:p-10">
+    <div className="min-h-screen bg-bg-dark text-slate-500 p-4 md:p-8 lg:p-10">
       <div className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-8 lg:grid-cols-12">
-        <div className="lg:col-span-12">
-          <h1 className="text-4xl font-black tracking-normal text-white md:text-6xl">
+        <div className="order-1 lg:col-span-12">
+          <h1 className="text-4xl font-black tracking-normal text-slate-900 md:text-6xl">
             Gradient Studio
           </h1>
-          <p className="mt-3 max-w-2xl text-base text-slate-400 md:text-lg">
+          <p className="mt-3 max-w-2xl text-base text-slate-700 md:text-lg">
             Build high-resolution wallpapers with extracted palettes, multiple gradient engines, and device-specific previews.
           </p>
         </div>
 
-        <div className="lg:col-span-4">
+        <div className="order-3 lg:order-2 lg:col-span-4">
           <div className="glass-panel overflow-hidden">
             <div className="control-row">
               <div className="control-cell control-cell-label">
@@ -156,18 +156,25 @@ export default function App() {
                 <span>Presets</span>
               </div>
               <div className="control-cell">
-                <div className="grid w-full grid-cols-2 gap-2">
-              {GRADIENT_PRESETS.map((preset) => (
-                <button
-                  key={preset.name}
-                  onClick={() => applyPalette(preset.colors)}
-                        className="preset-cell"
-                >
-                        <span className="preset-swatch" style={{ background: `linear-gradient(90deg, ${preset.colors.join(', ')})` }} />
-                  {preset.name}
-                </button>
-              ))}
-            </div>
+                <div className="flex w-full flex-col gap-4">
+                  {PRESET_GROUPS.map((group) => (
+                    <div key={group.country}>
+                      <p className="preset-group-label">{group.country}</p>
+                      <div className="grid w-full grid-cols-2 gap-2">
+                        {group.presets.map((preset) => (
+                          <button
+                            key={preset.name}
+                            onClick={() => applyPalette(preset.colors)}
+                            className="preset-cell"
+                          >
+                            <span className="preset-swatch" style={{ background: `linear-gradient(90deg, ${preset.colors.join(', ')})` }} />
+                            {preset.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
           </div>
 
@@ -362,24 +369,16 @@ export default function App() {
                 <span className="angle-readout">{grainScale}</span>
               </div>
             </div>
-
-          <button 
-            onClick={downloadWallpaper}
-              className="m-3 flex w-[calc(100%-1.5rem)] items-center justify-center gap-2 rounded-xl bg-white px-5 py-4 text-sm font-black text-slate-950 shadow-[0_18px_45px_rgba(255,255,255,0.16)] transition-transform hover:-translate-y-0.5"
-          >
-              <Download size={19} />
-              Download {selectedDevice.width}x{selectedDevice.height} PNG
-          </button>
         </div>
         </div>
 
-        <div className="lg:col-span-8">
+        <div className="order-2 lg:order-3 lg:col-span-8">
           <div className="preview-stage">
-          <WallpaperCanvas 
+          <WallpaperCanvas
               ref={canvasRef}
-            colors={colors} 
-            type={type} 
-            angle={angle} 
+            colors={colors}
+            type={type}
+            angle={angle}
               width={selectedDevice.width}
               height={selectedDevice.height}
               device={device}
@@ -387,11 +386,16 @@ export default function App() {
               bandWidth={bandWidth}
               weights={weights}
           />
-          
+
+            <button type="button" onClick={downloadWallpaper} className="download-btn">
+              <Download size={19} />
+              Download {selectedDevice.width}x{selectedDevice.height} PNG
+            </button>
+
             <div className="preview-status">
               <div>
                 <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Active Output</p>
-                <p className="mt-1 text-sm font-semibold text-slate-200">
+                <p className="mt-1 text-sm font-semibold text-slate-500">
                   {selectedDevice.label} / {type} / {selectedDevice.width}x{selectedDevice.height}
                 </p>
               </div>
