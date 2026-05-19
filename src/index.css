@@ -361,7 +361,13 @@ body::before {
   cursor: grab;
   align-items: center;
   justify-content: center;
+  padding: 6px 2px;
   color: var(--color-ink-soft);
+  /* Stop the browser from claiming the gesture for scroll/zoom so our
+     pointer events can drive the reorder on touch devices. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
   transition: color 160ms ease;
 }
 
@@ -371,6 +377,31 @@ body::before {
 
 .drag-handle:active {
   cursor: grabbing;
+}
+
+.color-remove {
+  display: flex;
+  height: 32px;
+  width: 32px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--hand-sm);
+  border: 2px solid var(--pencil-soft);
+  background: transparent;
+  color: var(--color-ink-soft);
+  transition: border-color 140ms ease, color 140ms ease, background-color 140ms ease;
+}
+
+.color-remove:hover:not(:disabled) {
+  border-color: var(--color-sketch-red);
+  color: var(--color-sketch-red);
+  background: rgba(191, 77, 58, 0.1);
+}
+
+.color-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
 }
 
 .color-add {
