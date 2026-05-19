@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { ChangeEvent, ReactNode } from 'react';
+import type { ChangeEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react';
 import { getPalette } from 'colorthief';
 import {
   Aperture,
@@ -16,6 +16,7 @@ import {
   Smartphone,
   Sparkles,
   Sunrise,
+  Trash2,
   Upload,
 } from 'lucide-react';
 import { GRADIENT_PRESETS, PRESET_GROUPS } from './lib/gradients';
@@ -108,6 +109,42 @@ export default function App() {
     nextWeights.splice(to, 0, movedWeight);
     setColors(nextColors);
     setWeights(nextWeights);
+  };
+
+  const removeColor = (index: number) => {
+    if (colors.length <= 1) return;
+    setColors(colors.filter((_, i) => i !== index));
+    setWeights(weights.filter((_, i) => i !== index));
+  };
+
+  // Pointer-based reorder: works for mouse, pen, and touch. setPointerCapture
+  // keeps subsequent move/up events on the handle even as the finger drifts
+  // across other rows; document.elementFromPoint tells us which row sits
+  // under the pointer so we can highlight it as the drop target.
+  const handleDragPointerDown =
+    (index: number) => (event: ReactPointerEvent<HTMLButtonElement>) => {
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setDragIndex(index);
+      setOverIndex(index);
+    };
+
+  const handleDragPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (dragIndex === null) return;
+    const target = document.elementFromPoint(event.clientX, event.clientY);
+    const row = target?.closest<HTMLElement>('[data-color-index]');
+    const next = row?.dataset.colorIndex;
+    if (next !== undefined) {
+      const parsed = Number(next);
+      if (!Number.isNaN(parsed)) setOverIndex(parsed);
+    }
+  };
+
+  const handleDragPointerUp = () => {
+    if (dragIndex !== null && overIndex !== null) {
+      moveColor(dragIndex, overIndex);
+    }
+    setDragIndex(null);
+    setOverIndex(null);
   };
 
   const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -265,33 +302,18 @@ export default function App() {
               {colors.map((color, index) => (
                 <div
                   key={index}
+                  data-color-index={index}
                   className={`color-row${dragIndex === index ? ' color-row-dragging' : ''}${
                     overIndex === index && dragIndex !== index ? ' color-row-over' : ''
                   }`}
-                  onDragOver={(event) => {
-                    event.preventDefault();
-                    setOverIndex(index);
-                  }}
-                  onDrop={(event) => {
-                    event.preventDefault();
-                    moveColor(dragIndex, index);
-                    setDragIndex(null);
-                    setOverIndex(null);
-                  }}
                 >
                   <button
                     type="button"
                     className="drag-handle"
-                    draggable
-                    onDragStart={(event) => {
-                      setDragIndex(index);
-                      event.dataTransfer.effectAllowed = 'move';
-                      event.dataTransfer.setData('text/plain', String(index));
-                    }}
-                    onDragEnd={() => {
-                      setDragIndex(null);
-                      setOverIndex(null);
-                    }}
+                    onPointerDown={handleDragPointerDown(index)}
+                    onPointerMove={handleDragPointerMove}
+                    onPointerUp={handleDragPointerUp}
+                    onPointerCancel={handleDragPointerUp}
                     aria-label={`Reorder color ${index + 1}`}
                   >
                     <GripVertical size={16} />
@@ -321,6 +343,15 @@ export default function App() {
                     className="w-full accent-brand-primary"
                   />
                   <span className="angle-readout">{weights[index] ?? DEFAULT_WEIGHT}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeColor(index)}
+                    disabled={colors.length <= 1}
+                    className="color-remove"
+                    aria-label={`Remove color ${index + 1}`}
+                  >
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               ))}
               <button
