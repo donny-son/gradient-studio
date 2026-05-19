@@ -26,6 +26,8 @@ const getColorStop = (index: number, count: number) => {
   return index / (count - 1);
 };
 
+const clampChannel = (value: number) => Math.max(0, Math.min(255, value));
+
 const applyGrain = (
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -36,33 +38,36 @@ const applyGrain = (
     return;
   }
 
-  const grainSize = Math.max(1, Math.round(grainScale / 7));
-  const noiseWidth = Math.ceil(width / grainSize);
-  const noiseHeight = Math.ceil(height / grainSize);
+  const strength = Math.min(1, grainScale / 40);
   const noiseCanvas = document.createElement('canvas');
-  noiseCanvas.width = noiseWidth;
-  noiseCanvas.height = noiseHeight;
+  noiseCanvas.width = width;
+  noiseCanvas.height = height;
 
   const noiseContext = noiseCanvas.getContext('2d');
   if (!noiseContext) {
     return;
   }
 
-  const imageData = noiseContext.createImageData(noiseWidth, noiseHeight);
-  for (let index = 0; index < imageData.data.length; index += 4) {
-    const value = Math.random() * 255;
-    imageData.data[index] = value;
-    imageData.data[index + 1] = value;
-    imageData.data[index + 2] = value;
-    imageData.data[index + 3] = 255;
+  const imageData = noiseContext.createImageData(width, height);
+  const { data } = imageData;
+  const contrast = 72 + strength * 56;
+  const chroma = strength * 10;
+
+  for (let index = 0; index < data.length; index += 4) {
+    const monochrome = 128 + (Math.random() + Math.random() - 1) * contrast;
+    const colorShift = (Math.random() + Math.random() - 1) * chroma;
+
+    data[index] = clampChannel(monochrome + colorShift);
+    data[index + 1] = clampChannel(monochrome);
+    data[index + 2] = clampChannel(monochrome - colorShift);
+    data[index + 3] = 255;
   }
 
   noiseContext.putImageData(imageData, 0, 0);
   ctx.save();
-  ctx.globalAlpha = Math.min(0.32, grainScale / 120);
-  ctx.globalCompositeOperation = 'overlay';
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(noiseCanvas, 0, 0, width, height);
+  ctx.globalAlpha = 0.02 + strength * 0.18;
+  ctx.globalCompositeOperation = 'soft-light';
+  ctx.drawImage(noiseCanvas, 0, 0);
   ctx.restore();
 };
 
