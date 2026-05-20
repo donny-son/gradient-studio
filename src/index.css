@@ -281,6 +281,12 @@ body::before {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+/* When a segmented control has 5 cells (e.g. gradient types), let the orphan
+   sit on its own row spanning both columns rather than hanging half-width. */
+.segmented-grid > :nth-child(5):nth-last-child(1) {
+  grid-column: 1 / -1;
+}
+
 .segment-cell {
   display: flex;
   min-height: 44px;
@@ -420,6 +426,110 @@ body::before {
   border-color: var(--color-sketch-red);
   color: var(--color-sketch-red);
   background: rgba(243, 211, 78, 0.28);
+}
+
+/* ---- Pattern designer (6x6 hand-painted grid) ---- */
+
+.pattern-brush-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pattern-brush {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 50% 47% 53% 50% / 50% 53% 47% 50%;
+  border: 2.5px solid var(--color-ink);
+  box-shadow: 1.5px 2px 0 rgba(43, 40, 36, 0.16);
+  cursor: pointer;
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.pattern-brush:hover {
+  transform: translateY(-1px);
+  box-shadow: 2px 3px 0 rgba(43, 40, 36, 0.22);
+}
+
+.pattern-brush-active {
+  outline: 3px dashed var(--color-sketch-red);
+  outline-offset: 3px;
+  transform: rotate(-3deg);
+}
+
+.pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  grid-template-rows: repeat(6, 1fr);
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  gap: 4px;
+  padding: 6px;
+  background: var(--color-page);
+  border: 2.5px solid var(--color-ink);
+  border-radius: var(--hand-md);
+  box-shadow: 1.5px 2px 0 rgba(43, 40, 36, 0.16);
+  /* Keep gestures with us instead of letting the browser scroll or zoom. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.pattern-cell {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 1.5px solid rgba(43, 40, 36, 0.55);
+  border-radius: 6px 4px 7px 5px / 5px 7px 4px 6px;
+  box-shadow: inset 0 0 0 1px rgba(252, 248, 238, 0.4);
+  cursor: crosshair;
+  transition: transform 100ms ease;
+  /* Inherit the grid's gesture lock so dragging across cells doesn't get
+     hijacked by native touch behaviors. */
+  touch-action: none;
+}
+
+.pattern-cell:focus-visible {
+  outline: 2px solid var(--color-sketch-red);
+  outline-offset: 2px;
+}
+
+.pattern-hint {
+  margin-top: 4px;
+  color: var(--color-ink-soft);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.pattern-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pattern-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: var(--hand-sm);
+  border: 2px solid var(--color-ink);
+  background: var(--color-page);
+  padding: 7px 11px;
+  color: var(--color-ink);
+  font-size: 0.92rem;
+  box-shadow: 1.5px 2px 0 rgba(43, 40, 36, 0.14);
+  transition: background-color 140ms ease, transform 140ms ease;
+}
+
+.pattern-action:hover {
+  background: rgba(243, 211, 78, 0.3);
+  transform: translateY(-1px);
+}
+
+.pattern-action svg {
+  color: var(--color-sketch-red);
 }
 
 /* ---- Range sliders styled as pencil rulers ---- */

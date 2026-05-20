@@ -5,6 +5,8 @@ import {
   Aperture,
   ChevronDown,
   Download,
+  Eraser,
+  Grid3x3,
   GripVertical,
   Image as ImageIcon,
   Layers3,
@@ -19,7 +21,13 @@ import {
   Trash2,
   Upload,
 } from 'lucide-react';
-import { GRADIENT_PRESETS, PRESET_GROUPS } from './lib/gradients';
+import {
+  GRADIENT_PRESETS,
+  PATTERN_CELL_COUNT,
+  PATTERN_GRID_SIZE,
+  PRESET_GROUPS,
+  buildDefaultPattern,
+} from './lib/gradients';
 import type { GradientType } from './lib/gradients';
 import { WallpaperCanvas } from './components/WallpaperCanvas';
 
@@ -38,6 +46,7 @@ const GRADIENT_TYPES: Array<{ type: GradientType; label: string; icon: typeof La
   { type: 'radial', label: 'Radial', icon: Aperture },
   { type: 'conic', label: 'Conic', icon: Sparkles },
   { type: 'glow', label: 'Glow', icon: Sunrise },
+  { type: 'custom', label: 'Custom', icon: Grid3x3 },
 ];
 
 // A collapsible control group — a notebook page you fold open or shut.
@@ -82,6 +91,11 @@ export default function App() {
   const [overIndex, setOverIndex] = useState<number | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [openSections, setOpenSections] = useState<string[]>(['presets', 'palette']);
+  const [pattern, setPattern] = useState<number[]>(() =>
+    buildDefaultPattern(GRADIENT_PRESETS[0].colors.length),
+  );
+  const [brushIndex, setBrushIndex] = useState(0);
+  const [isPainting, setIsPainting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const selectedDevice = DEVICE_PRESETS[device];
@@ -96,6 +110,9 @@ export default function App() {
   const applyPalette = (next: string[]) => {
     setColors(next);
     setWeights(next.map(() => DEFAULT_WEIGHT));
+    const lastIndex = Math.max(0, next.length - 1);
+    setPattern((prev) => prev.map((i) => Math.min(i, lastIndex)));
+    setBrushIndex((current) => Math.min(current, lastIndex));
   };
 
   // Reorder a color (and its girth) via drag-and-drop.
@@ -115,7 +132,57 @@ export default function App() {
     if (colors.length <= 1) return;
     setColors(colors.filter((_, i) => i !== index));
     setWeights(weights.filter((_, i) => i !== index));
+    // Shift painted indices down; cells using the deleted color fall back to 0.
+    setPattern((prev) =>
+      prev.map((cellIndex) => {
+        if (cellIndex === index) return 0;
+        if (cellIndex > index) return cellIndex - 1;
+        return cellIndex;
+      }),
+    );
+    setBrushIndex((current) => {
+      if (current === index) return 0;
+      if (current > index) return current - 1;
+      return current;
+    });
   };
+
+  // Find the cell beneath the pointer and stamp the active brush color into it.
+  const paintCellAtPoint = (clientX: number, clientY: number) => {
+    const target = document.elementFromPoint(clientX, clientY);
+    const cell = target?.closest<HTMLElement>('[data-pattern-cell]');
+    if (!cell) return;
+    const parsed = Number(cell.dataset.patternCell);
+    if (Number.isNaN(parsed)) return;
+    setPattern((prev) => {
+      if (prev[parsed] === brushIndex) return prev;
+      const next = [...prev];
+      next[parsed] = brushIndex;
+      return next;
+    });
+  };
+
+  const handlePatternPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setIsPainting(true);
+    paintCellAtPoint(event.clientX, event.clientY);
+  };
+
+  const handlePatternPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!isPainting) return;
+    paintCellAtPoint(event.clientX, event.clientY);
+  };
+
+  const handlePatternPointerUp = () => {
+    setIsPainting(false);
+  };
+
+  const fillPattern = (colorIndex: number) => {
+    const safe = Math.max(0, Math.min(colors.length - 1, colorIndex));
+    setPattern(Array.from({ length: PATTERN_CELL_COUNT }, () => safe));
+  };
+
+  const resetPattern = () => setPattern(buildDefaultPattern(colors.length));
 
   // Pointer-based reorder: works for mouse, pen, and touch. setPointerCapture
   // keeps subsequent move/up events on the handle even as the finger drifts
@@ -266,6 +333,11 @@ export default function App() {
                       // Vertical orientation makes the glow read as a
                       // horizontal "horizon" band.
                       if (gradientType === 'glow') setAngle(90);
+                      if (gradientType === 'custom') {
+                        setOpenSections((prev) =>
+                          prev.includes('pattern') ? prev : [...prev, 'pattern'],
+                        );
+                      }
                     }}
                     className={`segment-cell ${type === gradientType ? 'segment-cell-active' : ''}`}
                   >
@@ -274,7 +346,7 @@ export default function App() {
                   </button>
                 ))}
               </div>
-              {type !== 'radial' && (
+              {type !== 'radial' && type !== 'custom' && (
                 <div className="field">
                   <span className="field-label">Angle</span>
                   <div className="control-cell-range">
@@ -291,6 +363,80 @@ export default function App() {
                 </div>
               )}
             </Section>
+
+            {type === 'custom' && (
+              <Section
+                id="pattern"
+                icon={Grid3x3}
+                title="Pattern"
+                open={openSections.includes('pattern')}
+                onToggle={toggleSection}
+              >
+                <div className="field">
+                  <span className="field-label">Brush</span>
+                  <div className="pattern-brush-row">
+                    {colors.map((color, index) => (
+                      <button
+                        key={`brush-${index}`}
+                        type="button"
+                        onClick={() => setBrushIndex(index)}
+                        className={`pattern-brush${brushIndex === index ? ' pattern-brush-active' : ''}`}
+                        style={{ backgroundColor: color }}
+                        aria-label={`Paint with color ${index + 1}`}
+                        aria-pressed={brushIndex === index}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className="field">
+                  <span className="field-label">Grid</span>
+                  <div
+                    className="pattern-grid"
+                    onPointerDown={handlePatternPointerDown}
+                    onPointerMove={handlePatternPointerMove}
+                    onPointerUp={handlePatternPointerUp}
+                    onPointerCancel={handlePatternPointerUp}
+                  >
+                    {pattern.map((colorIndex, cellIndex) => {
+                      const swatch = colors[colorIndex] ?? colors[0] ?? '#ffffff';
+                      return (
+                        <button
+                          key={cellIndex}
+                          type="button"
+                          data-pattern-cell={cellIndex}
+                          className="pattern-cell"
+                          style={{ backgroundColor: swatch }}
+                          aria-label={`Pattern cell ${cellIndex + 1}, row ${
+                            Math.floor(cellIndex / PATTERN_GRID_SIZE) + 1
+                          }`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <p className="pattern-hint">
+                    Click or drag — touch and drag works too. Each cell blends into its neighbours.
+                  </p>
+                </div>
+
+                <div className="pattern-actions">
+                  <button
+                    type="button"
+                    onClick={() => fillPattern(brushIndex)}
+                    className="pattern-action"
+                  >
+                    <Palette size={14} /> Fill with brush
+                  </button>
+                  <button
+                    type="button"
+                    onClick={resetPattern}
+                    className="pattern-action"
+                  >
+                    <Eraser size={14} /> Reset bands
+                  </button>
+                </div>
+              </Section>
+            )}
 
             <Section
               id="palette"
@@ -446,6 +592,7 @@ export default function App() {
               grainScale={grainScale}
               bandWidth={bandWidth}
               weights={weights}
+              pattern={pattern}
           />
 
             <button type="button" onClick={downloadWallpaper} className="download-btn">
