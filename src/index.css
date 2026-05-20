@@ -97,16 +97,6 @@ body::before {
   transform: rotate(-0.5deg);
 }
 
-/* Red margin rule, like a ruled notebook. */
-.glass-panel::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 38px;
-  width: 2px;
-  background: rgba(191, 77, 58, 0.4);
-  pointer-events: none;
-}
-
 /* ---- Accordion sections (folding notebook pages) ---- */
 
 .accordion-section {
