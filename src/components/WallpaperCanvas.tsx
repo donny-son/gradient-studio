@@ -17,6 +17,7 @@ interface WallpaperCanvasProps {
   bandWidth: number;
   weights: number[];
   pattern: number[];
+  patternSmooth: number;
 }
 
 const getColorStop = (index: number, count: number) => {
@@ -72,16 +73,21 @@ const applyGrain = (
   ctx.restore();
 };
 
-// Render a painted 6x6 pattern by drawing each cell into a tiny offscreen
-// canvas, then upscaling with the browser's bilinear filter. Cells naturally
-// blend into a smooth, multi-directional gradient — and the small canvas
-// makes the whole thing cheap regardless of the final 4K size.
+// Render a painted 6x6 pattern. Bilinear alone leaves visible cell rectangles
+// at 4K, so we route through an intermediate canvas and apply a CSS-style
+// gaussian blur there — cheap (intermediate is ~512px on the long edge) and
+// the blob-like falloff hides the rectangular cell footprints. The blur
+// radius scales with the user's smoothness slider and with cell pitch, so the
+// control feels the same regardless of output resolution.
+const INTERMEDIATE_LONG_EDGE = 512;
+
 const renderCustomPattern = (
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
   pattern: number[],
   palette: string[],
+  smooth: number,
 ) => {
   const fallback = palette[0] ?? '#0f172a';
   const source = document.createElement('canvas');
@@ -99,16 +105,42 @@ const renderCustomPattern = (
     }
   }
 
+  // Pick an intermediate size whose long edge is INTERMEDIATE_LONG_EDGE px;
+  // the blur is applied here, so cost stays bounded even for 4K targets.
+  const aspect = width / height;
+  const interW = aspect >= 1 ? INTERMEDIATE_LONG_EDGE : Math.round(INTERMEDIATE_LONG_EDGE * aspect);
+  const interH = aspect >= 1 ? Math.round(INTERMEDIATE_LONG_EDGE / aspect) : INTERMEDIATE_LONG_EDGE;
+
+  const intermediate = document.createElement('canvas');
+  intermediate.width = interW;
+  intermediate.height = interH;
+  const interCtx = intermediate.getContext('2d');
+  if (!interCtx) return;
+
+  // Inset by half a source-pixel so the *centers* of the source cells land at
+  // the corners of the intermediate canvas — otherwise the outermost half-cell
+  // stretches flat along each edge.
+  const sx = -interW / (PATTERN_GRID_SIZE * 2 - 2);
+  const sy = -interH / (PATTERN_GRID_SIZE * 2 - 2);
+  const sw = interW - sx * 2;
+  const sh = interH - sy * 2;
+
+  interCtx.imageSmoothingEnabled = true;
+  interCtx.imageSmoothingQuality = 'high';
+
+  // smooth ∈ [0,100]. A radius equal to ~half a cell already merges adjacent
+  // cells into smooth blobs; cap at one cell pitch for a near-gradient look.
+  const cellPitch = INTERMEDIATE_LONG_EDGE / PATTERN_GRID_SIZE;
+  const blurPx = Math.max(0, Math.min(100, smooth)) / 100 * cellPitch;
+  if (blurPx > 0.1) {
+    interCtx.filter = `blur(${blurPx}px)`;
+  }
+  interCtx.drawImage(source, sx, sy, sw, sh);
+  interCtx.filter = 'none';
+
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
-  // Inset by half a pixel so the *centers* of the source cells land at the
-  // corners of the target — otherwise the outermost half-cell stretches flat
-  // along each edge and the gradient loses its painted shape.
-  const sx = -width / (PATTERN_GRID_SIZE * 2 - 2);
-  const sy = -height / (PATTERN_GRID_SIZE * 2 - 2);
-  const sw = width - sx * 2;
-  const sh = height - sy * 2;
-  ctx.drawImage(source, sx, sy, sw, sh);
+  ctx.drawImage(intermediate, 0, 0, width, height);
 };
 
 export const WallpaperCanvas = forwardRef<HTMLCanvasElement, WallpaperCanvasProps>(({
@@ -122,6 +154,7 @@ export const WallpaperCanvas = forwardRef<HTMLCanvasElement, WallpaperCanvasProp
   bandWidth,
   weights,
   pattern,
+  patternSmooth,
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -141,7 +174,7 @@ export const WallpaperCanvas = forwardRef<HTMLCanvasElement, WallpaperCanvasProp
     const palette = colors.length > 0 ? colors : ['#0f172a'];
 
     if (type === 'custom') {
-      renderCustomPattern(ctx, width, height, pattern, palette);
+      renderCustomPattern(ctx, width, height, pattern, palette, patternSmooth);
       applyGrain(ctx, width, height, grainScale);
       return;
     }
@@ -192,7 +225,7 @@ export const WallpaperCanvas = forwardRef<HTMLCanvasElement, WallpaperCanvasProp
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
     applyGrain(ctx, width, height, grainScale);
-  }, [colors, type, angle, width, height, grainScale, bandWidth, weights, pattern]);
+  }, [colors, type, angle, width, height, grainScale, bandWidth, weights, pattern, patternSmooth]);
 
   return (
     <div className={`device-frame ${device === 'phone' ? 'device-frame-phone' : 'device-frame-desktop'}`}>

@@ -96,6 +96,7 @@ export default function App() {
   );
   const [brushIndex, setBrushIndex] = useState(0);
   const [isPainting, setIsPainting] = useState(false);
+  const [patternSmooth, setPatternSmooth] = useState(55);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const selectedDevice = DEVICE_PRESETS[device];
@@ -419,6 +420,23 @@ export default function App() {
                   </p>
                 </div>
 
+                <div className="field">
+                  <span className="field-label">
+                    <SlidersHorizontal size={14} /> Smooth
+                  </span>
+                  <div className="control-cell-range">
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={patternSmooth}
+                      onChange={(event) => setPatternSmooth(parseInt(event.target.value))}
+                      className="w-full accent-brand-primary"
+                    />
+                    <span className="angle-readout">{patternSmooth}</span>
+                  </div>
+                </div>
+
                 <div className="pattern-actions">
                   <button
                     type="button"
@@ -593,6 +611,7 @@ export default function App() {
               bandWidth={bandWidth}
               weights={weights}
               pattern={pattern}
+              patternSmooth={patternSmooth}
           />
 
             <button type="button" onClick={downloadWallpaper} className="download-btn">
