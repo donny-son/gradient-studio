@@ -1,6 +1,6 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import type { GradientType } from '../lib/gradients';
-import { hexToRgb, rgbToCss, samplePalette } from '../lib/gradients';
+import { PATTERN_GRID_SIZE, hexToRgb, rgbToCss, samplePalette } from '../lib/gradients';
 
 // Number of intermediate color stops sampled along the gradient. More stops =
 // smoother, more "filmic" transitions instead of hard linear blends.
@@ -16,6 +16,7 @@ interface WallpaperCanvasProps {
   grainScale: number;
   bandWidth: number;
   weights: number[];
+  pattern: number[];
 }
 
 const getColorStop = (index: number, count: number) => {
@@ -71,6 +72,45 @@ const applyGrain = (
   ctx.restore();
 };
 
+// Render a painted 6x6 pattern by drawing each cell into a tiny offscreen
+// canvas, then upscaling with the browser's bilinear filter. Cells naturally
+// blend into a smooth, multi-directional gradient — and the small canvas
+// makes the whole thing cheap regardless of the final 4K size.
+const renderCustomPattern = (
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  pattern: number[],
+  palette: string[],
+) => {
+  const fallback = palette[0] ?? '#0f172a';
+  const source = document.createElement('canvas');
+  source.width = PATTERN_GRID_SIZE;
+  source.height = PATTERN_GRID_SIZE;
+  const sourceCtx = source.getContext('2d');
+  if (!sourceCtx) return;
+
+  for (let y = 0; y < PATTERN_GRID_SIZE; y += 1) {
+    for (let x = 0; x < PATTERN_GRID_SIZE; x += 1) {
+      const cellIndex = y * PATTERN_GRID_SIZE + x;
+      const colorIndex = pattern[cellIndex] ?? 0;
+      sourceCtx.fillStyle = palette[colorIndex] ?? fallback;
+      sourceCtx.fillRect(x, y, 1, 1);
+    }
+  }
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  // Inset by half a pixel so the *centers* of the source cells land at the
+  // corners of the target — otherwise the outermost half-cell stretches flat
+  // along each edge and the gradient loses its painted shape.
+  const sx = -width / (PATTERN_GRID_SIZE * 2 - 2);
+  const sy = -height / (PATTERN_GRID_SIZE * 2 - 2);
+  const sw = width - sx * 2;
+  const sh = height - sy * 2;
+  ctx.drawImage(source, sx, sy, sw, sh);
+};
+
 export const WallpaperCanvas = forwardRef<HTMLCanvasElement, WallpaperCanvasProps>(({
   colors,
   type,
@@ -81,6 +121,7 @@ export const WallpaperCanvas = forwardRef<HTMLCanvasElement, WallpaperCanvasProp
   grainScale,
   bandWidth,
   weights,
+  pattern,
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -98,6 +139,12 @@ export const WallpaperCanvas = forwardRef<HTMLCanvasElement, WallpaperCanvasProp
     canvas.height = height;
 
     const palette = colors.length > 0 ? colors : ['#0f172a'];
+
+    if (type === 'custom') {
+      renderCustomPattern(ctx, width, height, pattern, palette);
+      applyGrain(ctx, width, height, grainScale);
+      return;
+    }
 
     if (palette.length === 1) {
       ctx.fillStyle = palette[0];
@@ -145,7 +192,7 @@ export const WallpaperCanvas = forwardRef<HTMLCanvasElement, WallpaperCanvasProp
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, width, height);
     applyGrain(ctx, width, height, grainScale);
-  }, [colors, type, angle, width, height, grainScale, bandWidth, weights]);
+  }, [colors, type, angle, width, height, grainScale, bandWidth, weights, pattern]);
 
   return (
     <div className={`device-frame ${device === 'phone' ? 'device-frame-phone' : 'device-frame-desktop'}`}>

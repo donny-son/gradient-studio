@@ -3,7 +3,21 @@ export type GradientPreset = {
   colors: string[];
 };
 
-export type GradientType = 'linear' | 'radial' | 'conic' | 'glow';
+export type GradientType = 'linear' | 'radial' | 'conic' | 'glow' | 'custom';
+
+export const PATTERN_GRID_SIZE = 6;
+export const PATTERN_CELL_COUNT = PATTERN_GRID_SIZE * PATTERN_GRID_SIZE;
+
+// Default pattern: horizontal bands cycling through the palette so the
+// canvas reads as a familiar top-to-bottom gradient before the user paints.
+export const buildDefaultPattern = (paletteLength: number): number[] => {
+  const safe = Math.max(1, paletteLength);
+  return Array.from({ length: PATTERN_CELL_COUNT }, (_, idx) => {
+    const row = Math.floor(idx / PATTERN_GRID_SIZE);
+    const slot = Math.floor((row / PATTERN_GRID_SIZE) * safe);
+    return Math.min(safe - 1, slot);
+  });
+};
 
 // Presets grouped by the country / tradition that inspired their palette.
 export type PresetGroup = {
