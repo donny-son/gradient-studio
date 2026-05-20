@@ -10,6 +10,7 @@ import {
   GripVertical,
   Image as ImageIcon,
   Layers3,
+  Library,
   Monitor,
   Palette,
   Plus,
@@ -293,7 +294,7 @@ export default function App() {
 
             <Section
               id="presets"
-              icon={Palette}
+              icon={Library}
               title="Presets"
               open={openSections.includes('presets')}
               onToggle={toggleSection}
@@ -315,6 +316,82 @@ export default function App() {
                   </div>
                 </div>
               ))}
+            </Section>
+
+            <Section
+              id="palette"
+              icon={Palette}
+              title="Palette"
+              open={openSections.includes('palette')}
+              onToggle={toggleSection}
+            >
+              {colors.map((color, index) => (
+                <div
+                  key={index}
+                  data-color-index={index}
+                  className={`color-row${dragIndex === index ? ' color-row-dragging' : ''}${
+                    overIndex === index && dragIndex !== index ? ' color-row-over' : ''
+                  }`}
+                >
+                  <button
+                    type="button"
+                    className="drag-handle"
+                    onPointerDown={handleDragPointerDown(index)}
+                    onPointerMove={handleDragPointerMove}
+                    onPointerUp={handleDragPointerUp}
+                    onPointerCancel={handleDragPointerUp}
+                    aria-label={`Reorder color ${index + 1}`}
+                  >
+                    <GripVertical size={16} />
+                  </button>
+                  <input
+                    type="color"
+                    value={color}
+                    onChange={(e) => {
+                      const newColors = [...colors];
+                      newColors[index] = e.target.value;
+                      setColors(newColors);
+                    }}
+                    aria-label={`Palette color ${index + 1}`}
+                    className="color-orb"
+                  />
+                  <input
+                    type="range"
+                    min="1"
+                    max="40"
+                    value={weights[index] ?? DEFAULT_WEIGHT}
+                    onChange={(e) => {
+                      const newWeights = [...weights];
+                      newWeights[index] = parseInt(e.target.value);
+                      setWeights(newWeights);
+                    }}
+                    aria-label={`Color ${index + 1} girth`}
+                    disabled={type === 'custom'}
+                    className="w-full accent-brand-primary"
+                  />
+                  <span className="angle-readout">{weights[index] ?? DEFAULT_WEIGHT}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeColor(index)}
+                    disabled={colors.length <= 1}
+                    className="color-remove"
+                    aria-label={`Remove color ${index + 1}`}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => {
+                  setColors([...colors, '#ffffff']);
+                  setWeights([...weights, DEFAULT_WEIGHT]);
+                }}
+                className="color-add"
+                aria-label="Add color"
+              >
+                <Plus size={16} />
+              </button>
             </Section>
 
             <Section
@@ -457,81 +534,6 @@ export default function App() {
             )}
 
             <Section
-              id="palette"
-              icon={Palette}
-              title="Palette"
-              open={openSections.includes('palette')}
-              onToggle={toggleSection}
-            >
-              {colors.map((color, index) => (
-                <div
-                  key={index}
-                  data-color-index={index}
-                  className={`color-row${dragIndex === index ? ' color-row-dragging' : ''}${
-                    overIndex === index && dragIndex !== index ? ' color-row-over' : ''
-                  }`}
-                >
-                  <button
-                    type="button"
-                    className="drag-handle"
-                    onPointerDown={handleDragPointerDown(index)}
-                    onPointerMove={handleDragPointerMove}
-                    onPointerUp={handleDragPointerUp}
-                    onPointerCancel={handleDragPointerUp}
-                    aria-label={`Reorder color ${index + 1}`}
-                  >
-                    <GripVertical size={16} />
-                  </button>
-                  <input
-                    type="color"
-                    value={color}
-                    onChange={(e) => {
-                      const newColors = [...colors];
-                      newColors[index] = e.target.value;
-                      setColors(newColors);
-                    }}
-                    aria-label={`Palette color ${index + 1}`}
-                    className="color-orb"
-                  />
-                  <input
-                    type="range"
-                    min="1"
-                    max="40"
-                    value={weights[index] ?? DEFAULT_WEIGHT}
-                    onChange={(e) => {
-                      const newWeights = [...weights];
-                      newWeights[index] = parseInt(e.target.value);
-                      setWeights(newWeights);
-                    }}
-                    aria-label={`Color ${index + 1} girth`}
-                    className="w-full accent-brand-primary"
-                  />
-                  <span className="angle-readout">{weights[index] ?? DEFAULT_WEIGHT}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeColor(index)}
-                    disabled={colors.length <= 1}
-                    className="color-remove"
-                    aria-label={`Remove color ${index + 1}`}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              ))}
-              <button
-                type="button"
-                onClick={() => {
-                  setColors([...colors, '#ffffff']);
-                  setWeights([...weights, DEFAULT_WEIGHT]);
-                }}
-                className="color-add"
-                aria-label="Add color"
-              >
-                <Plus size={16} />
-              </button>
-            </Section>
-
-            <Section
               id="output"
               icon={Monitor}
               title="Output"
@@ -571,6 +573,7 @@ export default function App() {
                     max="100"
                     value={bandWidth}
                     onChange={(event) => setBandWidth(parseInt(event.target.value))}
+                    disabled={type === 'custom'}
                     className="w-full accent-brand-primary"
                   />
                   <span className="angle-readout">{bandWidth}</span>
