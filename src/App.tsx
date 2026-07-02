@@ -50,6 +50,7 @@ import { ShaderBackground } from './components/ShaderBackground';
 import { GlassTransportButton } from './components/GlassTransportButton';
 import { SHADER_DEFS, buildAllDefaultParamValues, getShaderDef } from './lib/shaders';
 import type { ShaderKind } from './lib/shaders';
+import type { PaperShaderElement } from '@paper-design/shaders-react';
 import { captureShaderSnapshot } from './lib/exportShader';
 
 type DeviceType = 'desktop' | 'phone';
@@ -151,6 +152,7 @@ export default function App() {
   const [patternSmooth, setPatternSmooth] = useState(55);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const shaderMountRef = useRef<PaperShaderElement | null>(null);
   const selectedDevice = DEVICE_PRESETS[device];
 
   // Fold a control section open or shut.
@@ -311,11 +313,16 @@ export default function App() {
     if (engine === 'shader') {
       setIsExporting(true);
       try {
+        // Freeze the export at the exact animation frame currently on
+        // screen, so a paused (or mid-animation) canvas downloads pixel-for
+        // -pixel what the user is looking at, just at the export resolution.
+        const liveFrame = shaderMountRef.current?.paperShaderMount?.getCurrentFrame() ?? 0;
         const dataUrl = await captureShaderSnapshot({
           kind: shaderKind,
           colors,
           paramValues: shaderParams[shaderKind],
-          speed: shaderSpeed,
+          scale: shaderScale,
+          frame: liveFrame,
           width: selectedDevice.width,
           height: selectedDevice.height,
         });
@@ -793,6 +800,7 @@ export default function App() {
           ) : (
             <div className={`device-frame ${device === 'phone' ? 'device-frame-phone' : 'device-frame-desktop'}`}>
               <ShaderBackground
+                mountRef={shaderMountRef}
                 kind={shaderKind}
                 colors={colors}
                 paramValues={shaderParams[shaderKind]}
