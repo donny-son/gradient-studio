@@ -3,11 +3,14 @@ import type { ChangeEvent, PointerEvent as ReactPointerEvent, ReactNode } from '
 import { getPalette } from 'colorthief';
 import {
   Aperture,
+  Blend,
   ChevronDown,
+  CircleDot,
   Download,
   Eraser,
   Grid3x3,
   GripVertical,
+  Hexagon,
   Image as ImageIcon,
   Layers3,
   Library,
@@ -21,6 +24,9 @@ import {
   Sunrise,
   Trash2,
   Upload,
+  Wand2,
+  Waves,
+  Zap,
 } from 'lucide-react';
 import {
   GRADIENT_PRESETS,
@@ -31,8 +37,13 @@ import {
 } from './lib/gradients';
 import type { GradientType } from './lib/gradients';
 import { WallpaperCanvas } from './components/WallpaperCanvas';
+import { ShaderBackground } from './components/ShaderBackground';
+import { SHADER_DEFS, buildAllDefaultParamValues, getShaderDef } from './lib/shaders';
+import type { ShaderKind } from './lib/shaders';
+import { captureShaderSnapshot } from './lib/exportShader';
 
 type DeviceType = 'desktop' | 'phone';
+type EngineType = 'static' | 'shader';
 
 // Neutral per-color girth — equal values give an even spread.
 const DEFAULT_WEIGHT = 10;
@@ -49,6 +60,20 @@ const GRADIENT_TYPES: Array<{ type: GradientType; label: string; icon: typeof La
   { type: 'glow', label: 'Glow', icon: Sunrise },
   { type: 'custom', label: 'Custom', icon: Grid3x3 },
 ];
+
+const ENGINE_TYPES: Array<{ type: EngineType; label: string; icon: typeof Layers3 }> = [
+  { type: 'static', label: 'Static', icon: Layers3 },
+  { type: 'shader', label: 'Shader', icon: Zap },
+];
+
+// Animated WebGL backgrounds powered by @paper-design/shaders-react.
+const SHADER_ICONS: Record<ShaderKind, typeof Layers3> = {
+  mesh: Blend,
+  warp: Wand2,
+  voronoi: Hexagon,
+  simplex: Waves,
+  grain: CircleDot,
+};
 
 // A collapsible control group — a notebook page you fold open or shut.
 type SectionProps = {
@@ -85,6 +110,12 @@ export default function App() {
   );
   const [type, setType] = useState<GradientType>('linear');
   const [angle, setAngle] = useState(90);
+  const [engine, setEngine] = useState<EngineType>('static');
+  const [shaderKind, setShaderKind] = useState<ShaderKind>('mesh');
+  const [shaderSpeed, setShaderSpeed] = useState(0.6);
+  const [shaderScale, setShaderScale] = useState(1);
+  const [shaderParams, setShaderParams] = useState(buildAllDefaultParamValues);
+  const [isExporting, setIsExporting] = useState(false);
   const [device, setDevice] = useState<DeviceType>('desktop');
   const [grainScale, setGrainScale] = useState(10);
   const [bandWidth, setBandWidth] = useState(0);
@@ -128,6 +159,10 @@ export default function App() {
     nextWeights.splice(to, 0, movedWeight);
     setColors(nextColors);
     setWeights(nextWeights);
+  };
+
+  const updateShaderParam = (key: string, value: number) => {
+    setShaderParams((prev) => ({ ...prev, [shaderKind]: { ...prev[shaderKind], [key]: value } }));
   };
 
   const removeColor = (index: number) => {
@@ -245,13 +280,37 @@ export default function App() {
     }
   };
 
-  const downloadWallpaper = () => {
+  const downloadDataUrl = (dataUrl: string, tag: string) => {
+    const link = document.createElement('a');
+    link.download = `wallpaper-${device}-${tag}-${selectedDevice.width}x${selectedDevice.height}-${Date.now()}.png`;
+    link.href = dataUrl;
+    link.click();
+  };
+
+  const downloadWallpaper = async () => {
+    if (engine === 'shader') {
+      setIsExporting(true);
+      try {
+        const dataUrl = await captureShaderSnapshot({
+          kind: shaderKind,
+          colors,
+          paramValues: shaderParams[shaderKind],
+          speed: shaderSpeed,
+          width: selectedDevice.width,
+          height: selectedDevice.height,
+        });
+        downloadDataUrl(dataUrl, shaderKind);
+      } catch (error) {
+        console.error('Error exporting shader wallpaper:', error);
+      } finally {
+        setIsExporting(false);
+      }
+      return;
+    }
+
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const link = document.createElement('a');
-    link.download = `wallpaper-${device}-${selectedDevice.width}x${selectedDevice.height}-${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    downloadDataUrl(canvas.toDataURL('image/png'), type);
   };
 
   return (
@@ -397,52 +456,145 @@ export default function App() {
             <Section
               id="gradient"
               icon={Sparkles}
-              title="Gradient"
+              title="Engine"
               open={openSections.includes('gradient')}
               onToggle={toggleSection}
             >
-              <div className="segmented-grid">
-                {GRADIENT_TYPES.map(({ type: gradientType, label, icon: Icon }) => (
-                  <button
-                    key={gradientType}
-                    type="button"
-                    onClick={() => {
-                      setType(gradientType);
-                      // Vertical orientation makes the glow read as a
-                      // horizontal "horizon" band.
-                      if (gradientType === 'glow') setAngle(90);
-                      if (gradientType === 'custom') {
-                        setOpenSections((prev) =>
-                          prev.includes('pattern') ? prev : [...prev, 'pattern'],
-                        );
-                      }
-                    }}
-                    className={`segment-cell ${type === gradientType ? 'segment-cell-active' : ''}`}
-                  >
-                    <Icon size={16} />
-                    <span>{label}</span>
-                  </button>
-                ))}
-              </div>
-              {type !== 'radial' && type !== 'custom' && (
-                <div className="field">
-                  <span className="field-label">Angle</span>
-                  <div className="control-cell-range">
-                    <input
-                      type="range"
-                      min="0"
-                      max="360"
-                      value={angle}
-                      onChange={(e) => setAngle(parseInt(e.target.value))}
-                      className="w-full accent-brand-primary"
-                    />
-                    <span className="angle-readout">{angle}°</span>
-                  </div>
+              <div className="field">
+                <span className="field-label">Rendering engine</span>
+                <div className="segmented-grid segmented-grid-two">
+                  {ENGINE_TYPES.map(({ type: engineType, label, icon: Icon }) => (
+                    <button
+                      key={engineType}
+                      type="button"
+                      onClick={() => setEngine(engineType)}
+                      className={`segment-cell ${engine === engineType ? 'segment-cell-active' : ''}`}
+                    >
+                      <Icon size={16} />
+                      <span>{label}</span>
+                    </button>
+                  ))}
                 </div>
+              </div>
+
+              {engine === 'static' ? (
+                <>
+                  <div className="segmented-grid">
+                    {GRADIENT_TYPES.map(({ type: gradientType, label, icon: Icon }) => (
+                      <button
+                        key={gradientType}
+                        type="button"
+                        onClick={() => {
+                          setType(gradientType);
+                          // Vertical orientation makes the glow read as a
+                          // horizontal "horizon" band.
+                          if (gradientType === 'glow') setAngle(90);
+                          if (gradientType === 'custom') {
+                            setOpenSections((prev) =>
+                              prev.includes('pattern') ? prev : [...prev, 'pattern'],
+                            );
+                          }
+                        }}
+                        className={`segment-cell ${type === gradientType ? 'segment-cell-active' : ''}`}
+                      >
+                        <Icon size={16} />
+                        <span>{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {type !== 'radial' && type !== 'custom' && (
+                    <div className="field">
+                      <span className="field-label">Angle</span>
+                      <div className="control-cell-range">
+                        <input
+                          type="range"
+                          min="0"
+                          max="360"
+                          value={angle}
+                          onChange={(e) => setAngle(parseInt(e.target.value))}
+                          className="w-full accent-brand-primary"
+                        />
+                        <span className="angle-readout">{angle}°</span>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="segmented-grid">
+                    {SHADER_DEFS.map(({ kind, name }) => {
+                      const Icon = SHADER_ICONS[kind];
+                      return (
+                        <button
+                          key={kind}
+                          type="button"
+                          onClick={() => setShaderKind(kind)}
+                          className={`segment-cell ${shaderKind === kind ? 'segment-cell-active' : ''}`}
+                        >
+                          <Icon size={16} />
+                          <span>{name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="pattern-hint">{getShaderDef(shaderKind).description}</p>
+
+                  <div className="field">
+                    <span className="field-label">Speed</span>
+                    <div className="control-cell-range">
+                      <input
+                        type="range"
+                        min="0"
+                        max="2"
+                        step="0.01"
+                        value={shaderSpeed}
+                        onChange={(e) => setShaderSpeed(parseFloat(e.target.value))}
+                        className="w-full accent-brand-primary"
+                      />
+                      <span className="angle-readout">{shaderSpeed.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  <div className="field">
+                    <span className="field-label">Scale</span>
+                    <div className="control-cell-range">
+                      <input
+                        type="range"
+                        min="0.25"
+                        max="2"
+                        step="0.01"
+                        value={shaderScale}
+                        onChange={(e) => setShaderScale(parseFloat(e.target.value))}
+                        className="w-full accent-brand-primary"
+                      />
+                      <span className="angle-readout">{shaderScale.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {getShaderDef(shaderKind).params.map((param) => (
+                    <div className="field" key={param.key}>
+                      <span className="field-label">{param.label}</span>
+                      <div className="control-cell-range">
+                        <input
+                          type="range"
+                          min={param.min}
+                          max={param.max}
+                          step={param.step}
+                          value={shaderParams[shaderKind]?.[param.key] ?? param.default}
+                          onChange={(e) => updateShaderParam(param.key, parseFloat(e.target.value))}
+                          className="w-full accent-brand-primary"
+                        />
+                        <span className="angle-readout">
+                          {(shaderParams[shaderKind]?.[param.key] ?? param.default).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </>
               )}
             </Section>
 
-            {type === 'custom' && (
+            {engine === 'static' && type === 'custom' && (
               <Section
                 id="pattern"
                 icon={Grid3x3}
@@ -573,7 +725,7 @@ export default function App() {
                     max="100"
                     value={bandWidth}
                     onChange={(event) => setBandWidth(parseInt(event.target.value))}
-                    disabled={type === 'custom'}
+                    disabled={type === 'custom' || engine === 'shader'}
                     className="w-full accent-brand-primary"
                   />
                   <span className="angle-readout">{bandWidth}</span>
@@ -591,6 +743,7 @@ export default function App() {
                     max="40"
                     value={grainScale}
                     onChange={(event) => setGrainScale(parseInt(event.target.value))}
+                    disabled={engine === 'shader'}
                     className="w-full accent-brand-primary"
                   />
                   <span className="angle-readout">{grainScale}</span>
@@ -602,11 +755,12 @@ export default function App() {
 
         <div className="order-2 lg:order-3 lg:col-span-8 lg:sticky lg:top-8 lg:self-start">
           <div className="preview-stage">
-          <WallpaperCanvas
+          {engine === 'static' ? (
+            <WallpaperCanvas
               ref={canvasRef}
-            colors={colors}
-            type={type}
-            angle={angle}
+              colors={colors}
+              type={type}
+              angle={angle}
               width={selectedDevice.width}
               height={selectedDevice.height}
               device={device}
@@ -615,18 +769,32 @@ export default function App() {
               weights={weights}
               pattern={pattern}
               patternSmooth={patternSmooth}
-          />
+            />
+          ) : (
+            <div className={`device-frame ${device === 'phone' ? 'device-frame-phone' : 'device-frame-desktop'}`}>
+              <ShaderBackground
+                kind={shaderKind}
+                colors={colors}
+                paramValues={shaderParams[shaderKind]}
+                speed={shaderSpeed}
+                scale={shaderScale}
+              />
+            </div>
+          )}
 
-            <button type="button" onClick={downloadWallpaper} className="download-btn">
+            <button type="button" onClick={downloadWallpaper} disabled={isExporting} className="download-btn">
               <Download size={19} />
-              Download {selectedDevice.width}x{selectedDevice.height} PNG
+              {isExporting
+                ? 'Rendering...'
+                : `Download ${selectedDevice.width}x${selectedDevice.height} PNG`}
             </button>
 
             <div className="preview-status">
               <div>
                 <p className="text-xs uppercase tracking-[0.22em] text-slate-500">Active Output</p>
                 <p className="mt-1 text-sm font-semibold text-slate-500">
-                  {selectedDevice.label} / {type} / {selectedDevice.width}x{selectedDevice.height}
+                  {selectedDevice.label} / {engine === 'shader' ? getShaderDef(shaderKind).name : type} /{' '}
+                  {selectedDevice.width}x{selectedDevice.height}
                 </p>
               </div>
               <div className="flex items-center gap-4">
