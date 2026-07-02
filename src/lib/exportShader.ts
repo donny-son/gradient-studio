@@ -7,22 +7,27 @@ interface CaptureShaderSnapshotOptions {
   kind: ShaderKind;
   colors: string[];
   paramValues: Record<string, number>;
-  speed: number;
+  scale: number;
+  frame: number;
   width: number;
   height: number;
 }
 
-// Mounts the shader off-screen at the exact export resolution, waits for a
-// couple of animation frames so the WebGL buffer is actually painted, then
-// reads it back as a PNG data URL. minPixelRatio/maxPixelCount are pinned so
-// the captured canvas is exactly `width`x`height` regardless of the device's
-// pixel ratio, and preserveDrawingBuffer keeps the frame readable via
-// toDataURL after the shader's own render loop swaps buffers.
+// Mounts the shader off-screen at the exact export resolution, pinned to the
+// same animation frame currently shown in the live preview (so a paused or
+// mid-animation canvas exports exactly what's on screen instead of a fresh,
+// independently-animated render), waits for a couple of animation frames so
+// the WebGL buffer is actually painted, then reads it back as a PNG data
+// URL. minPixelRatio/maxPixelCount are pinned so the captured canvas is
+// exactly `width`x`height` regardless of the device's pixel ratio, and
+// preserveDrawingBuffer keeps the frame readable via toDataURL after the
+// shader's own render loop swaps buffers.
 export const captureShaderSnapshot = async ({
   kind,
   colors,
   paramValues,
-  speed,
+  scale,
+  frame,
   width,
   height,
 }: CaptureShaderSnapshotOptions): Promise<string> => {
@@ -43,8 +48,9 @@ export const captureShaderSnapshot = async ({
           kind,
           colors,
           paramValues,
-          speed,
-          scale: 1,
+          scale,
+          frame,
+          speed: 0,
           minPixelRatio: 1,
           maxPixelCount: width * height,
           webGlContextAttributes: { preserveDrawingBuffer: true },

@@ -1,4 +1,5 @@
-import type { CSSProperties } from 'react';
+import type { CSSProperties, Ref } from 'react';
+import type { PaperShaderElement } from '@paper-design/shaders-react';
 import { getShaderDef } from '../lib/shaders';
 import type { ShaderKind } from '../lib/shaders';
 
@@ -8,10 +9,12 @@ interface ShaderBackgroundProps {
   paramValues: Record<string, number>;
   speed: number;
   scale: number;
+  frame?: number;
   style?: CSSProperties;
   minPixelRatio?: number;
   maxPixelCount?: number;
   webGlContextAttributes?: WebGLContextAttributes;
+  mountRef?: Ref<PaperShaderElement>;
 }
 
 export function ShaderBackground({
@@ -20,10 +23,12 @@ export function ShaderBackground({
   paramValues,
   speed,
   scale,
+  frame,
   style,
   minPixelRatio,
   maxPixelCount,
   webGlContextAttributes,
+  mountRef,
 }: ShaderBackgroundProps) {
   const def = getShaderDef(kind);
   const Component = def.component;
@@ -32,6 +37,8 @@ export function ShaderBackground({
   return (
     <Component
       {...shaderProps}
+      ref={mountRef}
+      frame={frame}
       width="100%"
       height="100%"
       minPixelRatio={minPixelRatio}
