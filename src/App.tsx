@@ -38,6 +38,7 @@ import {
 import type { GradientType } from './lib/gradients';
 import { WallpaperCanvas } from './components/WallpaperCanvas';
 import { ShaderBackground } from './components/ShaderBackground';
+import { GlassTransportButton } from './components/GlassTransportButton';
 import { SHADER_DEFS, buildAllDefaultParamValues, getShaderDef } from './lib/shaders';
 import type { ShaderKind } from './lib/shaders';
 import { captureShaderSnapshot } from './lib/exportShader';
@@ -116,6 +117,7 @@ export default function App() {
   const [shaderScale, setShaderScale] = useState(1);
   const [shaderParams, setShaderParams] = useState(buildAllDefaultParamValues);
   const [isExporting, setIsExporting] = useState(false);
+  const [isShaderPaused, setIsShaderPaused] = useState(false);
   const [device, setDevice] = useState<DeviceType>('desktop');
   const [grainScale, setGrainScale] = useState(10);
   const [bandWidth, setBandWidth] = useState(0);
@@ -776,8 +778,12 @@ export default function App() {
                 kind={shaderKind}
                 colors={colors}
                 paramValues={shaderParams[shaderKind]}
-                speed={shaderSpeed}
+                speed={isShaderPaused ? 0 : shaderSpeed}
                 scale={shaderScale}
+              />
+              <GlassTransportButton
+                isPaused={isShaderPaused}
+                onToggle={() => setIsShaderPaused((prev) => !prev)}
               />
             </div>
           )}
